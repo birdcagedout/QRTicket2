@@ -1,6 +1,7 @@
 import flet as ft
 
 def main(page: ft.Page):
+    page.theme = ft.Theme(color_scheme_seed=ft.colors.YELLOW)
 
     rail = ft.NavigationRail(
         selected_index=0,
@@ -8,8 +9,9 @@ def main(page: ft.Page):
         # extended=True,
         min_width=100,
         min_extended_width=400,
-        leading=ft.FloatingActionButton(icon=ft.icons.CREATE, text="Add"),
+        leading=ft.FloatingActionButton(icon=ft.icons.UPLOAD_FILE, text="파일열기"),
         group_alignment=-0.9,
+
         destinations=[
             ft.NavigationRailDestination(
                 icon=ft.icons.FAVORITE_BORDER, 
