@@ -1,5 +1,18 @@
 import flet as ft
-from distinctipy import distinctipy as dc
+from distinctipy import distinctipy as dtp
+
+
+N = 32
+def get_hex_colors(N):
+	colors = dtp.get_colors(N)
+	hex_colors = []
+	for color in colors:
+		rgb = (round(color[0] * 255), round(color[1] * 255), round(color[2] * 255))
+		hex = '%02x%02x%02x' % rgb
+		hex_colors.append('#' + hex)
+	return hex_colors
+
+
 
 
 def main(page: ft.Page):
