@@ -33,7 +33,9 @@ def main(page: ft.Page):
 			selected_files.value = "Cancelled!"
 		# 정상 선택한 경우
 		else:
-			selected_files.value = (", ".join(map(lambda f: f.name, e.files)))
+			#selected_files.value = (", ".join(map(lambda f: f.name, e.files)))
+			selected_files.value = list(map(lambda f: f.path, e.files))		
+			print(selected_files.value)
 			print(len(e.files))
 			print(e.files[0].name)
 			print(e.files[0].path)

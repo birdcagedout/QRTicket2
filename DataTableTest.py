@@ -2,9 +2,10 @@ import flet as ft
 from distinctipy import distinctipy as dtp
 
 
+# distict color 생성기
 N = 32
 def get_hex_colors(N):
-	colors = dtp.get_colors(N)
+	colors = dtp.get_colors(N, pastel_factor=0.6)
 	hex_colors = []
 	for color in colors:
 		rgb = (round(color[0] * 255), round(color[1] * 255), round(color[2] * 255))
@@ -52,15 +53,41 @@ def main(page: ft.Page):
 	VM_name_list = ["성금택", "홍종수", "우상민", "홍경옥", "신완택", "배홍길"]
 
 
-	# 통합
+	# 통합: 32명
 	code_list = TA_code_list + TG_code_list + VR_code_list + VM_code_list
 	name_list = TA_name_list + TG_name_list + VR_name_list + VM_name_list
+	
+	# 직원 color
+	color_list = get_hex_colors(len(code_list))
+	MA_color_list = get_hex_colors(len(affil_list))
 
 	
+	
+	# 파일 다이얼로그 파일선택 결과 ==> ft.FilePickerResultEvent
+	# 열기: e.files = 파일(ft.FilePickerFile객체) 리스트
+	# 취소: e.files = None
+	def pick_files_result(e: ft.FilePickerResultEvent):
+		# 취소한 경우
+		if e.files == None:
+			pass
+		# 정상 선택한 경우
+		else:
+			selected_files.value = list(map(lambda f: f.path, e.files))		# ['C:\\Dev\\QRticket\\202301\\IMG_7158.MOV', ... 'C:\\Dev\\QRticket\\202301\\IMG_7160.MOV']
+
+	# 파일 열기 다이얼로그
+	dlg_file_open = ft.FilePicker(on_result=pick_files_result)
+	page.overlay.append(dlg_file_open)
+
+	# 식권 동영상 파일 리스트(selected_files.value)
+	selected_files = ft.Text()
+
+
+
 
 	# 2. QR 검증 processing Table
 	r2_processing_table = ft.DataTable(
 		border=ft.border.all(2, ft.colors.LIGHT_GREEN_300),
+		vertical_lines=ft.border.BorderSide(1, ft.colors.WHITE12),
 		#heading_row_height=50,
 		#data_row_height = 40,
 		#column_spacing=10,
@@ -73,14 +100,14 @@ def main(page: ft.Page):
 	)
 
 	# 식당 목록 입력
-	for name in affil_list:
-		r2_processing_table.rows.append(ft.DataRow(cells=[ft.DataCell(ft.Text(f"{name}")), ft.DataCell(ft.ProgressBar(width=1580, height=20, color=(0.0, 1.0, 0.0), expand=True)), ft.DataCell(ft.Text("성공"))]))
-
+	for i, name in enumerate(affil_list):
+		r2_processing_table.rows.append(ft.DataRow(cells=[ft.DataCell(ft.Text(f"{name}")), ft.DataCell(ft.ProgressBar(width=1580, height=20, color=MA_color_list[i], )), ft.DataCell(ft.Text("성공"))]))
+	
 
 	# 3. 결과 Table
 	r3_result_table = ft.DataTable(
 		border=ft.border.all(2, ft.colors.LIGHT_BLUE_200),
-		vertical_lines=ft.border.BorderSide(1, ft.colors.BLACK12),
+		vertical_lines=ft.border.BorderSide(1, ft.colors.WHITE12),
 		#columns=[],
 		#rows=[
 		#	ft.DataRow(
@@ -109,19 +136,23 @@ def main(page: ft.Page):
 	
 	# 결과 Table 채우기
 	# columns = 직원 명단
-	r3_result_table.column_spacing = 12
-	r3_result_table.columns.append(ft.DataColumn(ft.Text("식당 이름 ", weight=ft.FontWeight.BOLD)))
+	r3_result_table.column_spacing = 10
+	r3_result_table.columns.append(ft.DataColumn(ft.Text("       식당 이름         ", weight=ft.FontWeight.BOLD)))
 	for name in name_list:
 		r3_result_table.columns.append(ft.DataColumn(ft.Text(f"{name}")))
 
 
+	
 	page.add(
 		r2_processing_table,
 		ft.Divider(height=9, thickness=3),
-		r3_result_table
+		r3_result_table,
+		selected_files		# 맨 마지막에 넣어야 공백 없음
 	)
 
-	print(page.width, page.height)
-	print(r2_processing_table)
+	# 다이얼로그 띄우기
+	dlg_file_open.pick_files(dialog_title="식권 동영상 파일 열기" , file_type=ft.FilePickerFileType.VIDEO, allow_multiple=True)
+
+
 
 ft.app(target=main, view=ft.FLET_APP_HIDDEN)
