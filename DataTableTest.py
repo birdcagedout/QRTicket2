@@ -3,13 +3,14 @@ from distinctipy import distinctipy as dtp
 
 
 # distict color 생성기
+# get_colors(N) ==> (R,G,B) 형태로 리턴(R,G,B는 float형)
 N = 32
 def get_hex_colors(N):
 	colors = dtp.get_colors(N, pastel_factor=0.6)
 	hex_colors = []
 	for color in colors:
 		rgb = (round(color[0] * 255), round(color[1] * 255), round(color[2] * 255))
-		hex = '%02x%02x%02x' % rgb
+		hex = '%02X%02X%02X' % rgb
 		hex_colors.append('#' + hex)
 	return hex_colors
 
@@ -18,16 +19,18 @@ def get_hex_colors(N):
 
 def main(page: ft.Page):
 	page.title = "QR식권 처리기"
-	page.window_width = 1930
-	page.window_height = 1050
+	# page.window_width = 1930
+	# page.window_height = 1050
 	page.window_resizable = False
 	page.window_maximizable = False
 	page.window_minimizable = False
-	#page.window_maximized = True
+	page.window_maximized = True
+	page.update()
 	page.theme_mode = ft.ThemeMode.DARK
 	page.window_visible = True
 	page.window_center()
 	page.scroll = ft.ScrollMode.AUTO
+	# print(page.width, page.height)
 	
 
 
