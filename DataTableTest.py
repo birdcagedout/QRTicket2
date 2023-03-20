@@ -1,6 +1,6 @@
 import re
 import time
-from datetime import *
+import datetime as dt
 import flet as ft
 from distinctipy import distinctipy as dtp
 
@@ -24,8 +24,8 @@ def get_hex_colors(num_of_colors):
 QR_HEADER = "NWTA(TA|TG|VR|VM)"				# 노원구청 교통행정과 TA(교통행정팀) / TG(운수지도팀) / VR(자동차등록팀) / VM(자동차관리팀) ==> 헤더부분이 내 QR인지 식별자 역할
 QR_CLASS_MA = "MA"							# 식당 = Member of Affiliation
 QR_CLASS_MS = "MS"							# 직원 = Member of Staff
-QR_YEAR = str(date.today().year) if date.today().month != 1 else str(date.today().year-1)																		# 대상년   =========>  실행시 기준(1월이면 이전 년 12월)
-QR_MONTH = "12" if date.today().month == 1 else str(date.today().month) if date.today().month == 12 and date.today().day > 15 else str(date.today().month-1)	# 대상월   =========>  실행시 기준 이전 달(12월 말이면 그해 12월)
+QR_YEAR = str(dt.date.today().year) if dt.date.today().month != 1 else str(dt.date.today().year-1)																		# 대상년   =========>  실행시 기준(1월이면 이전 년 12월)
+QR_MONTH = "12" if dt.date.today().month == 1 else str(dt.date.today().month) if dt.date.today().month == 12 and dt.date.today().day > 15 else str(dt.date.today().month-1)	# 대상월   =========>  실행시 기준 이전 달(12월 말이면 그해 12월)
 
 QR_YYYYMM = QR_YEAR + QR_MONTH				# "202302"
 QR_SN = ["0"+str(i) if i < 10 else str(i) for i in range(1, 21)]    # ["01", "02", ... "19", "20"]
@@ -197,6 +197,9 @@ def main(page: ft.Page):
 	# 다이얼로그 띄우기
 	dlg_file_open.pick_files(dialog_title="식권 동영상 파일 열기" , file_type=ft.FilePickerFileType.VIDEO, allow_multiple=True)
 
+	
+
+	# 프로그레스바 테스트
 	for i in range(len(affil_list)):
 		print(r2_processing_table.rows[i].cells[1].content.value)
 		time.sleep(1)
