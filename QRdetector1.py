@@ -32,8 +32,10 @@ def get_hex_colors(num_of_colors):
 QR_HEADER = "NWTA(TA|TG|VR|VM)"				# 노원구청 교통행정과 TA(교통행정팀) / TG(운수지도팀) / VR(자동차등록팀) / VM(자동차관리팀) ==> 헤더부분이 내 QR인지 식별자 역할
 QR_CLASS_MA = "MA"							# 식당 = Member of Affiliation
 QR_CLASS_MS = "MS"							# 직원 = Member of Staff
-QR_YEAR = str(dt.date.today().year) if dt.date.today().month != 1 else str(dt.date.today().year-1)																		# 대상년   =========>  실행시 기준(1월이면 이전 년 12월)
-QR_MONTH = "12" if dt.date.today().month == 1 else str(dt.date.today().month) if dt.date.today().month == 12 and dt.date.today().day > 15 else str(dt.date.today().month-1)	# 대상월   =========>  실행시 기준 이전 달(12월 말이면 그해 12월)
+QR_YEAR = str(dt.date.today().year - 1) if dt.date.today().month == 1 else str(dt.date.today().year)				# 대상년   =========>  실행시 기준(1월이면 이전 년 12월)
+QR_MONTH = "12" if (dt.date.today().month == 1 or (dt.date.today().month == 12 and dt.date.today().day > 15)) else (str(dt.date.today().month - 1) if dt.date.today().month - 1 >= 10 else "0" + str(dt.date.today().month - 1)) 
+# 대상월:  현재 1월이거나, 12월 말이면 ==> 대상월은 12월
+#          그외(2월 ~ 12월 초) ==> 대상월은 1월 ~ 11월 (단, 대상월이 1자리 숫자이면 "0" 추가)
 
 QR_YYYYMM = QR_YEAR + QR_MONTH				# "202302"
 QR_SN = ["0"+str(i) if i < 10 else str(i) for i in range(1, 21)]    # ["01", "02", ... "19", "20"]
@@ -156,9 +158,6 @@ class QRDetectorThread(threading.Thread):
 	
 	# 쓰레드 실행
 	def run(self):
-
-		# 진행상황 변수 update용 global 선언 
-		global progress_dict
 		
 		# frame 1개씩 읽기
 		for frame_index in range(self.frame_count):
@@ -223,7 +222,9 @@ class QRDetectorThread(threading.Thread):
 
 			if self.final_MA_name != "":
 				lock.acquire() # 다른 쓰레드의 접근 금지
-				progress_dict[self.final_MA_name] = (frame_index + 1) / self.frame_count
+				global progress_dict
+				progress_dict[self.final_MA_name] = round((frame_index + 1) / self.frame_count, 2)
+				print(progress_dict)
 				lock.release() # lock 해제
 			# ========== [안쪽 for loop 종료] frame 1개 중 QR 전체 처리 끝 ==========
 			# num_of_QR_preprocessed = len(QRs_in_frame)
@@ -292,12 +293,13 @@ class QRProgressThread(ft.UserControl):
 		self.running = False
 
 	def update_timer(self):
+
 		while self.running == True:
 			names = list(progress_dict.keys())
 			for i in range(len(names)):
 				name = names[i]
-				self.progressbars[affil_list.index(name)].value = progress_dict[name]
-				print(f"{name}: {progress_dict[name]}")
+				self.progressbars[affil_list.index(name)].value = round(progress_dict[name], 2)
+				#print(f"{name}: {progress_dict[name]}")
 				self.page.update()
 
 				if progress_dict[name] == 1:
@@ -358,9 +360,9 @@ def main(page: ft.Page):
 
 			# QR 처리 쓰레드(process_thread) 실행
 			# 쓰레드 생성 + 시작
-			for i in range(num_of_thread):
-				QR_workers.append(QRDetectorThread(mov[i], i))
-				QR_workers[i].start()
+			#for i in range(num_of_thread):
+			#	QR_workers.append(QRDetectorThread(mov[i], i))
+			#	QR_workers[i].start()
 
 			# 진행상황 관리 쓰레드(manager_thread) 실행
 			progressbar_list = [r2_processing_table.rows[i].cells[1].content for i in range(len(affil_list))]
