@@ -1,8 +1,10 @@
+# import debugpy
 import re
 import os
 import cv2
 import sys
 import time
+import copy
 import flet as ft
 import pandas as pd
 import datetime as dt
@@ -11,6 +13,8 @@ from pyzbar.pyzbar import *
 from dataclasses import dataclass
 from typing import List, Set, Dict
 from distinctipy import distinctipy as dtp
+
+
 
 #######################################################################################################################################################################
 # distict color 생성기
@@ -25,11 +29,14 @@ def get_hex_colors(num_of_colors):
 	return hex_colors
 
 
+
+
 #######################################################################################################################################################################
 # <QR Format>
 # 식당: NWTAVR-MA-202112-식당이름
 # 직원: NWTAVR-MS-202112-4077-01
 QR_HEADER = "NWTA(TA|TG|VR|VM)"				# 노원구청 교통행정과 TA(교통행정팀) / TG(운수지도팀) / VR(자동차등록팀) / VM(자동차관리팀) ==> 헤더부분이 내 QR인지 식별자 역할
+# 4월 부터는 "NWTCTA(TA|TG|VR|VM)|NWTC____"
 QR_CLASS_MA = "MA"							# 식당 = Member of Affiliation
 QR_CLASS_MS = "MS"							# 직원 = Member of Staff
 QR_YEAR = str(dt.date.today().year - 1) if dt.date.today().month == 1 else str(dt.date.today().year)				# 대상년   =========>  실행시 기준(1월이면 이전 년 12월)
@@ -40,6 +47,9 @@ QR_MONTH = "12" if (dt.date.today().month == 1 or (dt.date.today().month == 12 a
 QR_YYYYMM = QR_YEAR + QR_MONTH				# "202302"
 QR_SN = ["0"+str(i) if i < 10 else str(i) for i in range(1, 21)]    # ["01", "02", ... "19", "20"]
 
+##### 현재 테스트 중
+QR_YYYYMM = "202302"
+
 
 #######################################################################################################################################################################
 # 교통행정과 모든 팀 포함한 정규식
@@ -49,12 +59,17 @@ MS_pattern = re.compile(QR_HEADER + "-" + QR_CLASS_MS + "-" + QR_YYYYMM + "-" + 
 
 
 
+
+
 #######################################################################################################################################################################
 # 인풋 아웃풋 폴더 설정
 HOME_PATH = "C:/QRticket/"
 MOV_PATH = HOME_PATH + QR_YYYYMM + "/"
 OUT_PATH = HOME_PATH + QR_YYYYMM + "_Result" + "/"
 os.makedirs(OUT_PATH, exist_ok=True)
+
+
+
 
 
 #######################################################################################################################################################################
@@ -115,7 +130,7 @@ lock = threading.Lock()
 # 	processed_frames: int = 0
 # progress_dict: Dict[str, ProgressData] = {affil_list[k] : ProgressData() for k in range(len(affil_list))}		# typing으로 타입힌트
 
-progress_dict: Dict[str, float] = {affil_list[k] : 0.0 for k in range(len(affil_list))}								# typing으로 타입힌트
+progress_dict: Dict[str, float] = {affil_list[k] : 0.0 for k in range(len(affil_list))}							# typing으로 타입힌트
 
 
 
@@ -158,6 +173,7 @@ class QRDetectorThread(threading.Thread):
 	
 	# 쓰레드 실행
 	def run(self):
+		# debugpy.debug_this_thread()
 		
 		# frame 1개씩 읽기
 		for frame_index in range(self.frame_count):
@@ -195,12 +211,15 @@ class QRDetectorThread(threading.Thread):
 				# 식당QR인 경우
 				if match_result_MA is not None:
 					# self.detected_MA_set.add(match_result_MA.group())
-					_header, _ms, _yyyymm, affil_name = eachQR.data.decode('utf-8').split('-')
+					# _header, _ms, _yyyymm, affil_name = eachQR.data.decode('utf-8').split('-')
+					affil_name = match_result_MA.group().split('-')[3]
+					print(affil_name)
 					color_selected = (0, 0, 255)    # 식당QR은 빨간색
 					
 					# 최초 검출된 경우
 					if self.final_MA_name == "":
-						self.final_MA_name = affil_name				
+						self.final_MA_name = affil_name
+						print(f"final_MA_name: {affil_name}")
 				
 				# 직원QR인 경우
 				if match_result_MS is not None:
@@ -221,9 +240,9 @@ class QRDetectorThread(threading.Thread):
 				# ========== [안쪽 for loop 내부] frame 1개 중 QR 1개 처리 끝 ==========
 
 			if self.final_MA_name != "":
-				lock.acquire() # 다른 쓰레드의 접근 금지
 				global progress_dict
-				progress_dict[self.final_MA_name] = round((frame_index + 1) / self.frame_count, 2)
+				lock.acquire() # 다른 쓰레드의 접근 금지
+				progress_dict[self.final_MA_name] = round((frame_index + 1) / self.frame_count, 3) if frame_index + 1 < self.frame_count else 1
 				print(progress_dict)
 				lock.release() # lock 해제
 			# ========== [안쪽 for loop 종료] frame 1개 중 QR 전체 처리 끝 ==========
@@ -327,19 +346,19 @@ class QRProgressThread(ft.UserControl):
 #######################################################################################################################################################################
 # main()
 def main(page: ft.Page):
-	page.title = f"QR식권 처리기: {QR_YEAR}년 {QR_MONTH}월"
+	page.title = f"QR식권 처리기: {QR_YEAR}년 {QR_MONTH}월분"
 	page.window_width = 1938
 	page.window_height = 1050
 	page.window_resizable = False
 	page.window_maximizable = False
-	page.window_minimizable = False
+	page.window_minimizable = True
 	page.theme_mode = ft.ThemeMode.DARK
 	page.window_visible = True
 	page.window_center()
 	page.scroll = ft.ScrollMode.AUTO
 	
 	QR_workers = []
-	QR_manager = None
+	# QR_manager = None
 	
 
 	
@@ -354,24 +373,91 @@ def main(page: ft.Page):
 		# 정상 선택한 경우
 		else:
 			# 동영상 파일 리스트
-			selected_files.value = list(map(lambda f: f.path, e.files))		# ['C:\\Dev\\QRticket\\202301\\IMG_7158.MOV', ... 'C:\\Dev\\QRticket\\202301\\IMG_7160.MOV']
-			num_of_thread = len(selected_files.value)
-			mov = [cv2.VideoCapture(selected_files.value[i]) for i in range(num_of_thread)]    # 동영상 파일 입력 ==> cap 리스트에 저장
+			selected_files = list(map(lambda f: f.path, e.files))		# ['C:\\Dev\\QRticket\\202301\\IMG_7158.MOV', ... 'C:\\Dev\\QRticket\\202301\\IMG_7160.MOV']
+			num_of_thread = len(selected_files)
+			mov = [cv2.VideoCapture(selected_files[i]) for i in range(num_of_thread)]    # 동영상 파일 입력 ==> cap 리스트에 저장
 
 			# QR 처리 쓰레드(process_thread) 실행
 			# 쓰레드 생성 + 시작
-			#for i in range(num_of_thread):
-			#	QR_workers.append(QRDetectorThread(mov[i], i))
-			#	QR_workers[i].start()
+			for i in range(num_of_thread):
+				QR_workers.append(QRDetectorThread(mov[i], i))
+				QR_workers[i].start()
+			time.sleep(0.5)
 
 			# 진행상황 관리 쓰레드(manager_thread) 실행
-			progressbar_list = [r2_processing_table.rows[i].cells[1].content for i in range(len(affil_list))]
-			QR_manager = QRProgressThread(progressbar_list, page)
-			page.add(QR_manager)
+			# progressbar_list = [r2_processing_table.rows[i].cells[1].content for i in range(len(affil_list))]
+			# QR_manager = QRProgressThread(progressbar_list, page)
+			# page.add(QR_manager)
 
+			# 진행상황 관리를 쓰레드에 맡기지 않고 직접 여기서 실행
+			global progress_dict
+			MA_names = list(progress_dict.keys())			# 19개
+
+			processing_done = False
+			while processing_done == False:
+				# 한바퀴 순회하여 progressbar를 진행시킴
+				for i in range(len(MA_names)):
+					MA_name = MA_names[i]
+					r2_processing_table.rows[i].cells[0].content.color = ft.colors.WHITE if round(progress_dict[MA_name], 3) == 0 else (ft.colors.GREEN_400 if round(progress_dict[MA_name], 3) == 1 else ft.colors.AMBER_300)
+					r2_processing_table.rows[i].cells[1].content.value = round(progress_dict[MA_name], 3)
+					r2_processing_table.rows[i].cells[2].content = ft.Text("-") if round(progress_dict[MA_name], 3) == 0 else (ft.Text("처리중", color=ft.colors.AMBER_300) if round(progress_dict[MA_name], 3) != 1 else ft.Text("완료", color=ft.colors.GREEN_400))
+					page.update()
+				
+				time.sleep(0.1)
+
+				# progress_dict 전체가 0과 1로만 채워져 있을 때
+				if list(progress_dict.values()).count(0) + list(progress_dict.values()).count(1) == len(progress_dict):
+					# '처리중'이 하나도 없으면 종료
+					for j in range(len(MA_names)):
+						if r2_processing_table.rows[j].cells[2].content.value != "처리중":
+							processing_done = True
+							continue
+						else:
+							processing_done = False
+							break
+
+			# 결과 정리
+			# final_MA_list : 식당 리스트
+			# final_MS_list : 식당별 1개의 dict가 순서대로 저장된 리스트
+			final_MA_list = []
+			final_MS_list = []
+
+			for i in range(num_of_thread):
+				final_MA_list.append(QR_workers[i].final_MA_name)
+				final_MS_list.append(QR_workers[i].final_MS_dict)
+			
+			
+			# pandas 테이터프레임 만들기
+			column_list = copy.deepcopy(affil_list)
+			column_list.insert(0, '직원성명')
+			df = pd.DataFrame(columns=column_list)
+			df['직원성명'] = name_list
+			df = df.set_index('직원성명')
+			df.fillna(0, inplace=True)
+
+			# 식당별로 테이블 채워넣기(1개 열 = 식당 1개)
+			for col_name, val_dict in zip(final_MA_list, final_MS_list):
+				df[col_name] = list(map(len, val_dict.values()))
+			df = df.astype('int64')
+			
+			# Transpose(식당이 row로, 직원이 column으로)
+			df2 = df.T
+
+			# pandas 데이터프레임 완성
+			df2.loc['<<직원별 합계>>'] = df2.sum(axis=0)		# 마지막 행
+			df2['<<식당별 합계>>'] = df2.sum(axis=1)			# 마지막 열
+			
 			# 결과 datatable 표시
+			for i in range(len(affil_list) + 1):				# 식당(행) : 0 ~ 18
+				for j in range(1, len(name_list) + 2):			# 직원(열) : 1 ~ len(name_list) + 1
+					r3_result_table.rows[i].cells[j].content = ft.Text(str(df2.iloc[i, j-1]))
+					page.update()
+			print(df2)
+
+
 
 			# 엑셀파일 저장
+			df2.to_excel(f"{QR_YYYYMM} 식권 사용내역.xlsx")
 
 
 
@@ -382,7 +468,8 @@ def main(page: ft.Page):
 	page.overlay.append(dlg_file_open)
 
 	# 식권 동영상 파일 리스트(selected_files.value)
-	selected_files = ft.Text()
+	# selected_files = ft.Text()
+	selected_files = []
 
 
 
@@ -410,7 +497,7 @@ def main(page: ft.Page):
 			ft.DataRow(cells=[
 				ft.DataCell(ft.Text(f"{name}")), 
 				ft.DataCell(ft.ProgressBar(width=1625, height=20, color=MA_color_list[i], value=0)), 
-				ft.DataCell(ft.Text("성공"))
+				ft.DataCell(ft.Text("-"))
 			])
 		)
 		
@@ -449,11 +536,54 @@ def main(page: ft.Page):
 	# 결과 Table 채우기
 	# columns = 직원 명단
 	r3_result_table.column_spacing = 10.2
+	r3_result_table.data_row_height = 46
 	r3_result_table.columns.append(ft.DataColumn(ft.Text("   식당 이름         ", weight=ft.FontWeight.BOLD)))
 	for name in name_list:
 		r3_result_table.columns.append(ft.DataColumn(ft.Text(f"{name}", size=13)))
-	r3_result_table.columns.append(ft.DataColumn(ft.Text("        합계   ")))         
+	r3_result_table.columns.append(ft.DataColumn(ft.Text("        합계   ")))
 
+	# 식당 목록 입력
+	names = affil_list + ["        합계   "]
+	for i, name in enumerate(names):
+		r3_result_table.rows.append(
+			ft.DataRow(cells=[
+				ft.DataCell(ft.Text(f"{name}")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+				ft.DataCell(ft.Text("")),
+			])
+		)
 
 	
 	# 위젯 붙이기
@@ -461,7 +591,7 @@ def main(page: ft.Page):
 		r2_processing_table,
 		ft.Divider(height=9, thickness=3),
 		r3_result_table,
-		selected_files		# 맨 마지막에 넣어야 공백 없음
+		# selected_files		# 맨 마지막에 넣어야 공백 없음
 	)
 
 	# 다이얼로그 띄우기
@@ -469,12 +599,12 @@ def main(page: ft.Page):
 
 	
 	
-	for i in range(len(affil_list)):
+	# for i in range(len(affil_list)):
 		# print(r2_processing_table.rows[i].cells[1].content.value)
 		# time.sleep(1)
 		# r2_processing_table.rows[i].cells[1].content.value += 0.1
 		# page.update()
-		print(r2_processing_table.rows[i].cells[0].content.value)
+		# print(r2_processing_table.rows[i].cells[0].content.value)
 
 
 
