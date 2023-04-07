@@ -72,8 +72,8 @@ os.makedirs(OUT_PATH, exist_ok=True)
 
 #######################################################################################################################################################################
 # 식당 리스트(19)
-#				0				1				2				3			4			5				6			7			8			9			10				11			12			13			14				15				16				17			18			
-affil_list = ["노코(NOKO)", "어장촌생선구이", "횡성목장", "전주콩나루", "옛날칼국수", "칠리사이공", "도나한우", "북경(北京)", "명문식당", "일성스시", "새싹비빔밥", "파운드커피", "구내식당", '어돈', '신의주찹쌀순대', '마시차이나', '순두부와빈대떡', '노원437', '명품장어구이']
+#				0				1				2				3			4			5				6			7			8			9			10				11			12			13			14				15				16				17			18			19
+affil_list = ["노코(NOKO)", "어장촌생선구이", "횡성목장", "전주콩나루", "고봉민김밥", "옛날칼국수", "칠리사이공", "도나한우", "북경(北京)", "명문식당", "일성스시", "새싹비빔밥", "파운드커피", "구내식당", '어돈', '신의주찹쌀순대', '마시차이나', '순두부와빈대떡', '노원437', '명품장어구이']
 
 
 # 교통행정팀: 직원명단(11, 과장님 포함)
@@ -455,7 +455,7 @@ def main(page: ft.Page):
 
 
 			# 엑셀파일 저장
-			df2.to_excel(f"{QR_YYYYMM} 식권 사용내역.xlsx")
+			df2.to_excel(f"{HOME_PATH}{QR_YYYYMM} 식권 사용내역.xlsx")
 
 
 
@@ -477,7 +477,7 @@ def main(page: ft.Page):
 		border=ft.border.all(2, ft.colors.LIGHT_GREEN_300),
 		vertical_lines=ft.border.BorderSide(1, ft.colors.WHITE12),
 		#heading_row_height=50,
-		#data_row_height = 40,
+		data_row_height = 40,
 		#heading_row_color=ft.colors.LIGHT_GREEN_400,
 		#heading_text_style=ft.TextStyle(size=17, color=ft.colors.LIGHT_BLUE_900),
 		column_spacing=30,

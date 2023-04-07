@@ -1,0 +1,1 @@
+flet pack QRdetector1.py --name "QR식권처리기 v1.0" --icon "qr.ico" --add-data "libiconv.dll" --add-data "libzbar-64.dll" --product-name "QR식권처리기" --product-version "1.0" --file-description "QR식권처리기 v1.0" --copyright "Copyright © 2023 김재형\nAll rights reserved."

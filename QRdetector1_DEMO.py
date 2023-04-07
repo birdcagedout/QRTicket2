@@ -457,7 +457,7 @@ def main(page: ft.Page):
 
 
 			# 엑셀파일 저장
-			df2.to_excel(f"{QR_YYYYMM} 식권 사용내역.xlsx")
+			df2.to_excel(f"{HOME_PATH}{QR_YYYYMM} 식권 사용내역.xlsx")
 
 
 
