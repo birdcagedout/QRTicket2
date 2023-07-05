@@ -15,6 +15,9 @@ from typing import List, Set, Dict
 from distinctipy import distinctipy as dtp
 
 
+VER = "1.2"
+
+
 
 #######################################################################################################################################################################
 # distict color 생성기
@@ -36,9 +39,12 @@ def get_hex_colors(num_of_colors):
 # 식당: NWTAVR-MA-202112-식당이름
 # 직원: NWTAVR-MS-202112-4077-01
 
-QR_HEADER = "NWTAVR"
-#QR_HEADER = "NWTCTA(TA|TG|VR|VM)|NWTC____"		# 노원구청 교통행정과 TA(교통행정팀) / TG(운수지도팀) / VR(자동차등록팀) / VM(자동차관리팀) ==> 헤더부분이 내 QR인지 식별자 역할
-# ==> 설마 행정팀을 'NWTCTA(TA|TG|VR|VM)'로 넣었다면(진짜 답답하다) ==> 'NWTCTA\(TA\|TG\|VR\|VM\)|NWTC____'
+# 직원 QR 헤더
+QR_HEADER_MS = "(NWTCTA(TA|TG|VR|VS)|NWTC____|NWTCTA__)"		# 노원구청 교통행정과 TA(교통행정팀) / TG(운수지도팀) / VR(자동차등록팀) / VM(자동차관리팀) ==> 헤더부분이 내 QR인지 식별자 역할
+
+#식당 QR 헤더: NWTCTATA
+QR_HEADER_MA = "NWTCTATA"
+
 
 QR_CLASS_MA = "MA"								# 식당 = Member of Affiliation
 QR_CLASS_MS = "MS"								# 직원 = Member of Staff
@@ -55,8 +61,8 @@ QR_SN = ["0"+str(i) if i < 10 else str(i) for i in range(1, 21)]    # ["01", "02
 #######################################################################################################################################################################
 # 교통행정과 모든 팀 포함한 정규식
 # NWTA(TA|TG|VR|VM)-MA-202302-[0-9]{4}-[0-9]{2}
-MA_pattern = re.compile(QR_HEADER + "-" + QR_CLASS_MA + "-" + QR_YYYYMM + "-" + ".+")							# NWTAVR-MA-202112-노코(NOKO)
-MS_pattern = re.compile(QR_HEADER + "-" + QR_CLASS_MS + "-" + QR_YYYYMM + "-" + "[0-9]{4}" + "-" + "[0-9]{2}")	# NWTAVR-MS-202112-4077-01
+MA_pattern = re.compile(QR_HEADER_MA + "-" + QR_CLASS_MA + "-" + QR_YYYYMM + "-" + ".+")							# NWTAVR-MA-202112-노코(NOKO)
+MS_pattern = re.compile(QR_HEADER_MS + "-" + QR_CLASS_MS + "-" + QR_YYYYMM + "-" + "[0-9]{4}" + "-" + "[0-9]{2}")	# NWTAVR-MS-202112-4077-01
 
 
 
@@ -74,12 +80,11 @@ os.makedirs(OUT_PATH, exist_ok=True)
 
 
 #######################################################################################################################################################################
-# 식당 리스트(20)
-#				0				1				2				3			4			5				6			7			8			9			10				11			12			13			14				15				16				17			18			19
-affil_list = ["노코(NOKO)", "어장촌생선구이", "횡성목장", "전주콩나루", "고봉민김밥인", "옛날칼국수", "칠리사이공", "도나한우", "북경(北京)", "명문식당", "일성스시", "새싹비빔밥", "파운드커피", "구내식당", '어돈', '신의주찹쌀순대', '마시차이나', '순두부와빈대떡', '노원437', '명품장어구이']
+# 식당 리스트(21): 20개 + 2개(예향정,오토김밥)
+#				0				1				2				3			4			5				6			7			8			9			10				11			12			13			14				15				16				17			18			19				20			21
+affil_list = ["노코(NOKO)", "어장촌생선구이", "횡성목장", "전주콩나루", "고봉민김밥인", "옛날칼국수", "칠리사이공", "도나한우", "북경(北京)", "명문식당", "일성스시", "새싹비빔밥", "파운드커피", "구내식당", '어돈', '신의주찹쌀순대', '마시차이나', '순두부와빈대떡', '노원437', '명품장어구이', '예향정', '오토김밥']
 
-
-# 교통행정팀: 직원명단(11, 과장님 포함)
+# 교통건설국장: 직원명단(1)
 TC_____code_list = ["3021"]
 TC_____name_list = ["박영래"]
 
@@ -92,17 +97,17 @@ TCTATG_code_list = ["4047",   "4043",   "4045",   "4056",   "4055",   "4044"]
 TCTATG_name_list = ["윤정웅", "백주호", "김미섭", "김필상", "김영훈", "심승근"]
 
 # 등록팀: 직원명단(9 + 1 = 10명)
-TCTAVR_code_list =  ["4080",   "4079",   "4076",   "4077",   "4068",   "4069",   "4078",   "4071",   "4075"]
-TCTAVR_name_list =  ["정미경", "강선임", "정성욱", "김재형", "이지은", "모수지", "송현우", "신이은", "한정민"]
+TCTAVR_code_list =  ["4080",   "4079",   "4075",   "4077",   "4076",   "4069",   "4078",   "4071"]
+TCTAVR_name_list =  ["정미경", "강선임", "정성욱", "김재형", "이지은", "모수지", "송현우", "신이은"]
 
 # 자동차관리팀: 직원명단(6)
-TCTAVM_code_list = ["4052",   "4051",   "4054",   "4053",   "4050",   "4049"]
-TCTAVM_name_list = ["성금택", "홍종수", "우상민", "홍경옥", "신완택", "배홍길"]
+TCTAVS_code_list = ["4052",   "4051",   "4054",   "4053",   "4050",   "4049"]
+TCTAVS_name_list = ["성금택", "홍종수", "우상민", "홍경옥", "신완택", "배홍길"]
 
 
 # 통합: 32 + 1 = 33명
-code_list = TC_____code_list + TCTATA_code_list + TCTATG_code_list + TCTAVR_code_list + TCTAVM_code_list
-name_list = TC_____name_list + TCTATA_name_list + TCTATG_name_list + TCTAVR_name_list + TCTAVM_name_list
+code_list = TC_____code_list + TCTATA_code_list + TCTATG_code_list + TCTAVR_code_list + TCTAVS_code_list
+name_list = TC_____name_list + TCTATA_name_list + TCTATG_name_list + TCTAVR_name_list + TCTAVS_name_list
 
 
 # 직원 color
@@ -217,8 +222,8 @@ class QRDetectorThread(threading.Thread):
 				if match_result_MA is not None:
 					# self.detected_MA_set.add(match_result_MA.group())
 					# _header, _ms, _yyyymm, affil_name = eachQR.data.decode('utf-8').split('-')
+					#print(match_result_MA.group())
 					affil_name = match_result_MA.group().split('-')[3]
-					#print(affil_name)
 					color_selected = (0, 0, 255)    # 식당QR은 빨간색
 					
 					# 최초 검출된 경우
@@ -351,7 +356,7 @@ class QRProgressThread(ft.UserControl):
 #######################################################################################################################################################################
 # main()
 def main(page: ft.Page):
-	page.title = f"QR식권 처리기 v1.2: {QR_YEAR}년 {QR_MONTH}월분"
+	page.title = f"QR식권 처리기 v{VER}     {QR_YEAR}년 {QR_MONTH}월분"
 	page.window_width = 1938
 	page.window_height = 1050
 	page.window_resizable = False
@@ -408,7 +413,7 @@ def main(page: ft.Page):
 					r2_processing_table.rows[i].cells[2].content = ft.Text("-") if round(progress_dict[MA_name], 3) == 0 else (ft.Text("처리중", color=ft.colors.AMBER_300) if round(progress_dict[MA_name], 3) != 1 else ft.Text("완료", color=ft.colors.GREEN_400))
 					page.update()
 				
-				time.sleep(0.1)
+				time.sleep(0.01)
 
 				# progress_dict 전체가 0과 1로만 채워져 있을 때
 				if list(progress_dict.values()).count(0) + list(progress_dict.values()).count(1) == len(progress_dict):
@@ -460,8 +465,8 @@ def main(page: ft.Page):
 
 			
 			# 결과표 만들기
-			r3_result_table.column_spacing = 10.2
-			r3_result_table.data_row_height = 44
+			r3_result_table.column_spacing = 11.65
+			r3_result_table.data_row_height = 40
 			r3_result_table.columns.append(ft.DataColumn(ft.Text("   식당 이름         ", weight=ft.FontWeight.BOLD)))
 			for name in name_list:
 				r3_result_table.columns.append(ft.DataColumn(ft.Text(f"{name}", size=13)))
@@ -543,7 +548,7 @@ def main(page: ft.Page):
 		border=ft.border.all(2, ft.colors.LIGHT_GREEN_300),
 		vertical_lines=ft.border.BorderSide(1, ft.colors.WHITE12),
 		#heading_row_height=50,
-		data_row_height = 46,
+		data_row_height = 42,
 		#heading_row_color=ft.colors.LIGHT_GREEN_400,
 		#heading_text_style=ft.TextStyle(size=17, color=ft.colors.LIGHT_BLUE_900),
 		column_spacing=30,
